@@ -1,0 +1,31 @@
+# Lokal ishlab chiqish yoki VPS uchun: PostgreSQL + FastAPI backend.
+# Frontend Vercel'ga alohida deploy qilinadi (yoki lokal `npm run dev`).
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bilim
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bilim}
+      POSTGRES_DB: bilim
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bilim"]
+      interval: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://bilim:${POSTGRES_PASSWORD:-bilim}@db:5432/bilim
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
